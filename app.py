@@ -5,8 +5,12 @@ from dotenv import load_dotenv
 import logging
 import asyncio
 
+from keep_alive import keep_alive
+
 load_dotenv()
 token = os.getenv('TOKEN')
+
+keep_alive()
 
 intents = discord.Intents.all()
 
