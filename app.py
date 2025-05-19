@@ -5,12 +5,8 @@ from dotenv import load_dotenv
 import logging
 import asyncio
 
-from keep_alive import keep_alive
-
 load_dotenv()
 token = os.getenv('TOKEN')
-
-keep_alive()
 
 intents = discord.Intents.all()
 
@@ -27,19 +23,24 @@ asyncio.run(load())
 @bot.event
 async def on_ready():
     print(f'Logged in as {bot.user}')
-    await bot.tree.sync()
 
-@bot.hybrid_command(name="ping", description="Pong")
-async def ping(ctx: commands.Context):
-    try:
-        await ctx.message.delete()
-    except:
-        print()
+@bot.command(name="ping", description="Pong")
+async def ping(ctx):
+    await ctx.message.delete()
     embed = discord.Embed(
         title="🏓 Pong!",
         description=f"The latency is {round(bot.latency * 1000)} ms",
         color=discord.Colour.blue()
     )
     await ctx.send(embed=embed)
+
+"""
+@bot.command(name='deletecommands', aliases=['clear'])
+@commands.has_any_role('Owner')
+async def delete_commands(ctx):
+    bot.tree.clear_commands(guild=None)
+    await bot.tree.sync()
+    await ctx.send('Commands deleted.')
+"""
 
 bot.run(token, log_handler=handler, log_level=logging.DEBUG)

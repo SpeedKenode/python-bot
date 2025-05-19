@@ -31,24 +31,11 @@ class moderation(commands.Cog):
     async def warn(self, ctx):
         await ctx.send("In development")
 
-    @commands.hybrid_command()
+    @commands.command()
     @commands.has_permissions(manage_messages=True)
-    async def purge(self, ctx: commands.Context, amount: int):
-        """
-        Delete amount of message
-
-        Parameters
-        ----------
-        ctx: commands.Context
-            The context of the command invocation
-        amount: int
-            The number of message
-        """
+    async def purge(self, ctx, amount: int):
+        await ctx.message.delete()
         if amount > 0:
-            try:
-                await ctx.message.delete()
-            except:
-                print()
             if amount > 10:
                 message = await ctx.send("Reach the limit")
                 await message.delete(delay=2)
@@ -59,6 +46,7 @@ class moderation(commands.Cog):
             await message.delete(delay=2)
         else:
             await ctx.send("Dafuq")
+        
 
     @purge.error
     async def purge_error(self, ctx: commands.Context, error):
