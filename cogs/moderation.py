@@ -9,27 +9,19 @@ class moderation(commands.Cog):
     @commands.command()
     async def kick(self, ctx, member: discord.Member, *, reason=None):
         await member.kick(reason=reason)
-        await ctx.send("In development")
-
+        await ctx.send(f"{member.mention} has been kicked")
+    
     @commands.command()
-    async def ban(self, ctx):
-        await ctx.send("In development")
-
+    async def ban(self, ctx, member: discord.Member, *, reason=None):
+        await member.ban(reason=reason)
+        await ctx.send(f"{member.mention} has been banned")
+    
     @commands.command()
-    async def unban(self, ctx):
-        await ctx.send("In development")
-
-    @commands.command()
-    async def mute(self, ctx):
-        await ctx.send("In development")
-
-    @commands.command()
-    async def unmute(self, ctx):
-        await ctx.send("In development")
-
-    @commands.command()
-    async def warn(self, ctx):
-        await ctx.send("In development")
+    async def unban(self, ctx, user_id: str, reason=None):
+        bans = [entry.user.id async for entry in ctx.guild.bans()]
+        member = await self.bot.fetch_user(user_id)
+        await ctx.guild.unban(member)
+        await ctx.send(f"{member.mention}is unbanned.")
 
     @commands.command()
     @commands.has_permissions(manage_messages=True)
@@ -38,10 +30,9 @@ class moderation(commands.Cog):
         if amount > 0:
             if amount > 10:
                 message = await ctx.send("Reach the limit")
-                await message.delete(delay=2)
+                await message.delete(delay=1)
                 amount = 10
             deleted = await ctx.channel.purge(limit = amount)
-            await ctx.defer()
             message = await ctx.send(f"Done. Delete {len(deleted)} messages.")
             await message.delete(delay=2)
         else:
