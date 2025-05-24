@@ -4,6 +4,7 @@ import os
 from dotenv import load_dotenv
 import logging
 import asyncio
+import aiosqlite
 
 load_dotenv()
 token = os.getenv('TOKEN')
@@ -23,12 +24,18 @@ asyncio.run(load())
 @bot.event
 async def on_ready():
     print(f'Logged in as {bot.user}')
+    await bot.tree.sync()
     game = discord.Game("Discord.py VS Nextcord")
     await bot.change_presence(activity=game)
+    bot.db = await aiosqlite.connect('Main.db')
+    c = await bot.db.cursor()
+    sql_statements = ["""CREATE TABLE IF NOT EXISTS user(user_id INTEGER);""", """CREATE TABLE IF NOT EXISTS message(message_id INTEGER);"""]
+    for statement in sql_statements:
+        await c.execute(statement)
+    await bot.db.commit()
 
-@bot.command(name="ping", description="Pong")
-async def ping(ctx):
-    await ctx.message.delete()
+@bot.hybrid_command(name="ping", description="Pong")
+async def ping(ctx: commands.Context):
     embed = discord.Embed(
         title="🏓 Pong!",
         description=f"The latency is {round(bot.latency * 1000)} ms",
