@@ -2,45 +2,52 @@ import discord
 from discord.ext import commands
 import os
 from dotenv import load_dotenv
-import logging
 import asyncio
-import aiosqlite
+import logging
+from database import db
 
 load_dotenv()
-token = os.getenv('TOKEN')
+
+TOKEN = os.getenv("TOKEN")
 
 intents = discord.Intents.all()
-
+bot = commands.Bot(command_prefix=".", intents=intents)
 handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
-bot = commands.Bot(command_prefix="!", intents=intents)
-
-async def load():
-    for filename in os.listdir('./cogs'):
-        if filename.endswith('.py'):
-            await bot.load_extension(f"cogs.{filename[:-3]}")
-
-asyncio.run(load())
 
 @bot.event
 async def on_ready():
-    print(f'Logged in as {bot.user}')
-    await bot.tree.sync()
-    game = discord.Game("Discord.py VS Nextcord")
-    await bot.change_presence(activity=game)
-    bot.db = await aiosqlite.connect('Main.db')
-    c = await bot.db.cursor()
-    sql_statements = ["""CREATE TABLE IF NOT EXISTS user(user_id INTEGER);""", """CREATE TABLE IF NOT EXISTS message(message_id INTEGER);"""]
-    for statement in sql_statements:
-        await c.execute(statement)
-    await bot.db.commit()
+    await db.init_db()
+    print(f"✅ Logged in as {bot.user}")
 
-@bot.hybrid_command(name="ping", description="Pong")
-async def ping(ctx: commands.Context):
-    embed = discord.Embed(
-        title="🏓 Pong!",
-        description=f"The latency is {round(bot.latency * 1000)} ms",
-        color=discord.Colour.blue()
-    )
-    await ctx.send(embed=embed)
+# Load command cogs
+async def command_load(base="commands"):
+    for root, _, files in os.walk(base):
+        for file in files:
+            if file.endswith(".py") and not file.startswith("_"):
+                filepath = os.path.join(root, file)
+                cog_path = filepath.replace("/", ".").replace("\\", ".")[:-3]
+                try:
+                    await bot.load_extension(cog_path)
+                    print(f"✅ Loaded command: {cog_path}")
+                except Exception as e:
+                    print(f"❌ Failed to load command {cog_path}: {e}")
 
-bot.run(token, log_handler=handler, log_level=logging.DEBUG)
+# Load event cogs
+async def event_load(base="events"):
+    for root, _, files in os.walk(base):
+        for file in files:
+            if file.endswith(".py") and not file.startswith("_"):
+                filepath = os.path.join(root, file)
+                cog_path = filepath.replace("/", ".").replace("\\", ".")[:-3]
+                try:
+                    await bot.load_extension(cog_path)
+                    print(f"✅ Loaded event: {cog_path}")
+                except Exception as e:
+                    print(f"❌ Failed to load event {cog_path}: {e}")
+
+async def main():
+    await asyncio.gather(command_load(), event_load())
+
+asyncio.run(main())
+
+bot.run(TOKEN, log_handler=handler, log_level=logging.DEBUG)
