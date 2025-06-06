@@ -4,50 +4,43 @@ import os
 from dotenv import load_dotenv
 import asyncio
 import logging
-from database import db
 
 load_dotenv()
 
 TOKEN = os.getenv("TOKEN")
 
 intents = discord.Intents.all()
-bot = commands.Bot(command_prefix=".", intents=intents)
+bot = commands.Bot(command_prefix=".", intents=intents, help_command=None)
 handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
+discord.utils.setup_logging(handler=handler, level=logging.INFO)
 
-@bot.event
-async def on_ready():
-    await db.init_db()
-    print(f"✅ Logged in as {bot.user}")
+async def event_load():
+    for filename in os.listdir('./events'):
+        if filename.endswith('.py'):
+            extension = f"events.{filename[:-3]}"
+            try:
+                await bot.load_extension(extension)
+                print(f"📦 Loaded events: {extension}")
+            except Exception as e:
+                print(f"❌ Failed to load cog {extension}: {e}")
 
-# Load command cogs
-async def command_load(base="commands"):
-    for root, _, files in os.walk(base):
-        for file in files:
-            if file.endswith(".py") and not file.startswith("_"):
-                filepath = os.path.join(root, file)
-                cog_path = filepath.replace("/", ".").replace("\\", ".")[:-3]
-                try:
-                    await bot.load_extension(cog_path)
-                    print(f"✅ Loaded command: {cog_path}")
-                except Exception as e:
-                    print(f"❌ Failed to load command {cog_path}: {e}")
-
-# Load event cogs
-async def event_load(base="events"):
-    for root, _, files in os.walk(base):
-        for file in files:
-            if file.endswith(".py") and not file.startswith("_"):
-                filepath = os.path.join(root, file)
-                cog_path = filepath.replace("/", ".").replace("\\", ".")[:-3]
-                try:
-                    await bot.load_extension(cog_path)
-                    print(f"✅ Loaded event: {cog_path}")
-                except Exception as e:
-                    print(f"❌ Failed to load event {cog_path}: {e}")
+async def command_load():
+    for filename in os.listdir('./commands'):
+        if filename.endswith('.py'):
+            extension = f"commands.{filename[:-3]}"
+            try:
+                await bot.load_extension(extension)
+                print(f"📦 Loaded commands: {extension}")
+            except Exception as e:
+                print(f"❌ Failed to load cog {extension}: {e}")
 
 async def main():
-    await asyncio.gather(command_load(), event_load())
+    async with bot:
+        await event_load()
+        await command_load()
+        await bot.start(TOKEN)
 
-asyncio.run(main())
-
-bot.run(TOKEN, log_handler=handler, log_level=logging.DEBUG)
+try:
+    asyncio.run(main())
+except KeyboardInterrupt:
+    logging.warning("Bot was stopped manually (KeyboardInterrupt).")
